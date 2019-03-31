@@ -19,7 +19,7 @@ class ElevatorSystemTests {
     ElevatorSystemTests() {
         val elevators = Stream.iterate(0, i -> i++)
                 .limit(5)
-                .map(i -> Elevator.of(i, 0, new ArrayList<>()))
+                .map(i -> Elevator.of(i, 0))
                 .collect(Collectors.toList());
         this.system = ElevatorSystemImpl.of(elevators);
     }
@@ -29,13 +29,28 @@ class ElevatorSystemTests {
 
         system.pickUp(2, 4);
         system.pickUp(3, 8);
-        test(system, List.of(8, 4, 2, 3), 1);
-        doSystemStep(system, 4);
+        test(system, List.of(3, 2), 1);
+        doSystemStep(system, 3);
+        test(system, List.of(8, 4), 1);
+        doSystemStep(system, 1);
         test(system, List.of(8), 1);
         system.pickUp(1, 6);
         system.pickUp(9, 10);
-        test(system, List.of(10, 9, 8), 1);
-        test(system, List.of(6, 1), 1);
+        test(system, List.of(1), 1);
+        test(system, List.of(9, 8), 1);
+        doSystemStep(system, 5);
+        test(system, List.of(6), 1);
+        test(system, List.of(10), 1);
+        doSystemStep(system, 1);
+        test(system, List.of(), 5);
+        system.pickUp(3,5);
+        system.pickUp(3,8);
+        system.pickUp(9,5);
+        system.pickUp(4,6);
+        test(system,List.of(9),1);
+        test(system,List.of(3,3),1);
+        test(system,List.of(4),1);
+        test(system, List.of(), 2);
     }
 
     private void test(final ElevatorSystemImpl system,

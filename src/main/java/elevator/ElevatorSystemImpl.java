@@ -32,25 +32,31 @@ public class ElevatorSystemImpl implements ElevatorSystem {
     }
 
     public void pickUp(Integer currentLevel, Integer targetLevel) {
+        val direction = ElevatorUtills.getDirection(targetLevel, currentLevel);
         Predicate<Elevator> filter = e -> e.getDirection().equals(Direction.NONE) ||
-                (e.checkIfIsInRoad(targetLevel) || e.checkIfIsInRoad(currentLevel));
-        val elevator = elevatorList.stream()
+                ((e.checkIfIsInRoad(targetLevel) || e.checkIfIsInRoad(currentLevel))
+                        || direction.equals(e.getDirection()));
+
+        val elevators = elevatorList.stream()
                 .filter(filter)
+                .collect(Collectors.toList());
+        val elevator = elevators.stream()
                 .reduce((e1, e2) -> getElevatorWithShorterDistance(e1, e2, currentLevel, targetLevel));
 
-        if (elevator.isPresent()) elevator.get().pickup(currentLevel, targetLevel);
-        else {
-//            elevatorList.stream().filter(e -> e.getTar)
-        }
+        elevator.ifPresent(elevator1 -> elevator1.pickup(currentLevel, targetLevel));
     }
 
     private Elevator getElevatorWithShorterDistance(final Elevator elevator1,
                                                     final Elevator elevator2,
                                                     final Integer currentLevel,
                                                     final Integer targetLevel) {
-        val diff1 = Math.abs(elevator1.getCurrentLevel() - elevator1.getTargetLevel() - currentLevel + targetLevel);
-        val diff2 = Math.abs(elevator2.getCurrentLevel() - elevator2.getTargetLevel() - currentLevel + targetLevel);
+        val diff1 = distance(elevator1.getCurrentLevel(), currentLevel, elevator1.getTargetLevel(), targetLevel);
+        val diff2 = distance(elevator2.getCurrentLevel(), currentLevel, elevator2.getTargetLevel(), targetLevel);
         return diff1 < diff2 ? elevator1 : elevator2;
     }
 
+
+    private double distance(final double x1, final double x2, final double y1, final double y2) {
+        return Math.sqrt(Math.pow(x1 - x2, 2) + Math.pow(x1 - x2, 2));
+    }
 }

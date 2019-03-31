@@ -2,8 +2,10 @@ package elevator;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import lombok.val;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
@@ -13,43 +15,59 @@ import java.util.stream.Collectors;
 import static elevator.Direction.*;
 
 @Getter
-@AllArgsConstructor(staticName = "of")
 public class Elevator {
     private final Integer id;
     private Integer currentLevel;
-    private List<Integer> road;
+    private List<Integer> road = new ArrayList<>();
+    private List<Pair<Integer, Integer>> pickups = new ArrayList<>();
+//    private Direction direction = NONE;
 
-    private List<Integer> pickupLevels;
-    private List<Integer> targetLevels;
+    private Elevator(Integer id, Integer currentLevel) {
+        this.id = id;
+        this.currentLevel = currentLevel;
+    }
+
+    public static Elevator of(final Integer id, final Integer currentLevel) {
+        return new Elevator(id, currentLevel);
+    }
+
 
     public Integer getTargetLevel() {
+        return road.size() > 0 ? pickups.stream().mapToInt(Pair::getSecond).max().orElse(getCurrentTarget()) : currentLevel;
+    }
+
+    public Integer getCurrentTarget() {
         return road.size() > 0 ? road.get(0) : currentLevel;
     }
 
     public void step() {
         move();
-        road = road.stream().filter(l -> !l.equals(currentLevel))
+        pickups.stream().filter(p -> p.getFirst().equals(currentLevel))
+                .map(Pair::getSecond)
+                .forEach(this::addToRoad);
+        pickups = pickups.stream().filter(p -> !p.getFirst().equals(currentLevel))
+                .collect(Collectors.toList());
+        road = road.stream()
+                .filter(l -> !l.equals(currentLevel))
                 .collect(Collectors.toList());
     }
 
     public void setTargetLevel(final Integer level) {
-        if (getTargetLevel().equals(level)) return;
+        if (getCurrentTarget().equals(level)) return;
         road.add(0, level);
     }
 
-    public void pickup(final Integer currentLevel, final Integer level) {
-        addToRoad(currentLevel);
-        addToRoad(level);
+    public void pickup(final Integer pickupLevel, final Integer targetLevel) {
+        pickups.add(Pair.of(pickupLevel, targetLevel));
+        addToRoad(pickupLevel);
+
     }
-    private void addToPickups(final Integer level) {
-        if (getDirection().equals(UP) && level > getTargetLevel()) setTargetLevel(level);
-        else if (getDirection().equals(DOWN) && level < getTargetLevel()) setTargetLevel(level);
+
+
+    private void addToRoad(final Integer level) {
+        if (getDirection().equals(UP) && level > getCurrentTarget()) setTargetLevel(level);
+        else if (getDirection().equals(DOWN) && level < getCurrentTarget()) setTargetLevel(level);
         else road.add(level);
-    }
-    private void addToRoad(final Integer level,final List<Integer> list) {
-        if (getDirection().equals(UP) && level > getTargetLevel()) setTargetLevel(level);
-        else if (getDirection().equals(DOWN) && level < getTargetLevel()) pickupLevels(level);
-        else pickupLevels.add(level);
     }
 
     private void move() {
@@ -66,6 +84,6 @@ public class Elevator {
     }
 
     public Direction getDirection() {
-        return ElevatorUtills.getDirection(getTargetLevel(), currentLevel);
+        return ElevatorUtills.getDirection(getCurrentTarget(), currentLevel);
     }
 }
