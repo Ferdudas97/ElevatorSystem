@@ -30,9 +30,9 @@ public class Elevator {
     }
 
 
-//    public Integer getTargetLevel() {
-//        return road.size() > 0 ? pickups.stream().mapToInt(Pair::getSecond).max().orElse(getCurrentTarget()) : currentLevel;
-//    }
+    public Integer getTargetLevel() {
+        return road.size() > 0 ? pickups.stream().mapToInt(Pair::getSecond).max().orElse(getCurrentTarget()) : currentLevel;
+    }
 
     public Integer getCurrentTarget() {
         return road.size() > 0 ? road.get(0) : currentLevel;
@@ -40,11 +40,11 @@ public class Elevator {
 
     public void step() {
         move();
-//        pickups.stream().filter(p -> p.getFirst().equals(currentLevel))
-//                .map(Pair::getSecond)
-//                .forEach(this::addToRoad);
-//        pickups = pickups.stream().filter(p -> !p.getFirst().equals(currentLevel))
-//                .collect(Collectors.toList());
+        pickups.stream().filter(p -> p.getFirst().equals(currentLevel))
+                .map(Pair::getSecond)
+                .forEach(this::addToRoad);
+        pickups = pickups.stream().filter(p -> !p.getFirst().equals(currentLevel))
+                .collect(Collectors.toList());
         road = road.stream()
                 .filter(l -> !l.equals(currentLevel))
                 .collect(Collectors.toList());
@@ -59,7 +59,7 @@ public class Elevator {
         if (pickupLevel.equals(currentLevel)) {
             addToRoad(targetLevel);
         } else {
-            addToRoad(targetLevel);
+            pickups.add(Pair.of(pickupLevel, targetLevel));
             addToRoad(pickupLevel);
         }
     }
@@ -79,8 +79,8 @@ public class Elevator {
 
     public Boolean checkIfIsInRoad(final Integer level) {
         if (road.contains(level)) return true;
-        else if (getDirection().equals(UP) && currentLevel < level && getCurrentTarget() > level) return true;
-        else if (getDirection().equals(DOWN) && currentLevel > level && getCurrentTarget() < level) return true;
+        else if (getDirection().equals(UP) && currentLevel < level && getTargetLevel() > level) return true;
+        else if (getDirection().equals(DOWN) && currentLevel > level && getTargetLevel() < level) return true;
         else return false;
     }
 
@@ -91,8 +91,8 @@ public class Elevator {
     public Integer distanceToGo(final Pair<Integer, Integer> pair) {
         pickups.add(pair);
         Integer distance;
-        if ((pair.getFirst()>currentLevel && getDirection().equals(UP)) ||
-                (pair.getFirst()>currentLevel && getDirection().equals(DOWN)) ) distance = ditanceUp();
+        if ((pair.getFirst()>currentLevel && !getDirection().equals(DOWN)) ||
+                (pair.getFirst()>currentLevel && !getDirection().equals(UP)) ) distance = ditanceUp();
         else distance = ditanceDown();
         pickups.remove(pair);
         return distance;
@@ -103,24 +103,24 @@ public class Elevator {
         val maxToPickup = pickups.stream().mapToInt(Pair::getFirst)
                 .map(Math::abs)
                 .min()
-                .orElse(0);
+                .orElse(currentLevel);
         val maxToTarget = pickups.stream().mapToInt(Pair::getSecond)
                 .map(Math::abs)
                 .max()
-                .orElse(0);
-        return Math.abs(currentLevel - maxToPickup) + maxToTarget - maxToPickup;
+                .orElse(currentLevel);
+        return Math.abs(currentLevel - maxToPickup) + Math.abs(maxToTarget - maxToPickup);
     }
 
     private Integer ditanceDown() {
         val maxToPickup = pickups.stream().mapToInt(Pair::getFirst)
                 .map(Math::abs)
                 .max()
-                .orElse(0);
+                .orElse(currentLevel);
         val maxToTarget = pickups.stream().mapToInt(Pair::getSecond)
                 .map(Math::abs)
                 .min()
-                .orElse(0);
-        return Math.abs(currentLevel - maxToPickup) + maxToPickup - maxToTarget;
+                .orElse(currentLevel);
+        return Math.abs(currentLevel - maxToPickup) + Math.abs(maxToPickup - maxToTarget);
     }
 
 

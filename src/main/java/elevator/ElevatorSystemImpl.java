@@ -19,7 +19,7 @@ public class ElevatorSystemImpl implements ElevatorSystem {
 
     public Set<ElevatorStatus> status() {
         return elevatorList.stream()
-                .map(e -> ElevatorStatus.of(e.getId(), e.getCurrentLevel(), e.getCurrentTarget()))
+                .map(e -> ElevatorStatus.of(e.getId(), e.getCurrentLevel(), e.getTargetLevel()))
                 .collect(Collectors.toSet());
     }
 
