@@ -19,7 +19,7 @@ public class ElevatorSystemImpl implements ElevatorSystem {
 
     public Set<ElevatorStatus> status() {
         return elevatorList.stream()
-                .map(e -> ElevatorStatus.of(e.getId(), e.getCurrentLevel(), e.getTargetLevel()))
+                .map(e -> ElevatorStatus.of(e.getId(), e.getCurrentLevel(), e.getCurrentTarget()))
                 .collect(Collectors.toSet());
     }
 
@@ -50,13 +50,13 @@ public class ElevatorSystemImpl implements ElevatorSystem {
                                                     final Elevator elevator2,
                                                     final Integer currentLevel,
                                                     final Integer targetLevel) {
-        val diff1 = distance(elevator1.getCurrentLevel(), currentLevel, elevator1.getTargetLevel(), targetLevel);
-        val diff2 = distance(elevator2.getCurrentLevel(), currentLevel, elevator2.getTargetLevel(), targetLevel);
+        val diff1 = elevator1.distanceToGo(Pair.of(currentLevel,targetLevel)) ;
+        val diff2 = elevator2.distanceToGo(Pair.of(currentLevel,targetLevel));
         return diff1 < diff2 ? elevator1 : elevator2;
     }
 
 
     private double distance(final double x1, final double x2, final double y1, final double y2) {
-        return Math.sqrt(Math.pow(x1 - x2, 2) + Math.pow(x1 - x2, 2));
+        return x1-y1 +x2-y2;
     }
 }
