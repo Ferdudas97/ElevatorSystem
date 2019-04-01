@@ -18,7 +18,7 @@ public class ElevatorTests {
     void pickUpTest() {
         val elevator = Elevator.of(1, 0);
         elevator.pickup(2, 5);
-        assertEquals(2, elevator.getCurrentTarget());
+        assertEquals(2, elevator.getTargetFloor());
         assertEquals(List.of(2), elevator.getRoad());
         elevator.pickup(3, 4);
         assertEquals(List.of(3,2), elevator.getRoad());

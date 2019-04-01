@@ -1,14 +1,10 @@
 package elevator;
 
-import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import lombok.val;
 
 import java.util.*;
-import java.util.logging.Level;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static elevator.Direction.*;
 
@@ -16,115 +12,75 @@ import static elevator.Direction.*;
 public class Elevator {
     private final Integer id;
     private Integer currentLevel;
-    private List<Integer> road = new ArrayList<>();
-    private List<Pair<Integer, Integer>> pickups = new ArrayList<>();
-//    private Direction direction = NONE;
+    private Direction direction = NONE;
+    private Set<Integer> road = new HashSet<>();
 
     private Elevator(Integer id, Integer currentLevel) {
         this.id = id;
         this.currentLevel = currentLevel;
     }
 
+    public Integer getTargetFloor() {
+        if (direction.equals(NONE)) return currentLevel;
+        else if(direction.equals(UP)) return road.stream().mapToInt(Integer::intValue).max().orElse(currentLevel);
+        else if(direction.equals(DOWN)) return road.stream().mapToInt(Integer::intValue).min().orElse(currentLevel);
+        else return currentLevel;
+    }
+
     public static Elevator of(final Integer id, final Integer currentLevel) {
         return new Elevator(id, currentLevel);
     }
 
-
-    public Integer getTargetLevel() {
-        return road.size() > 0 ? pickups.stream().mapToInt(Pair::getSecond).max().orElse(getCurrentTarget()) : currentLevel;
-    }
-
-    public Integer getCurrentTarget() {
-        return road.size() > 0 ? road.get(0) : currentLevel;
-    }
-
-    public void step() {
-        move();
-        pickups.stream().filter(p -> p.getFirst().equals(currentLevel))
-                .map(Pair::getSecond)
-                .forEach(this::addToRoad);
-        pickups = pickups.stream().filter(p -> !p.getFirst().equals(currentLevel))
-                .collect(Collectors.toList());
-        road = road.stream()
-                .filter(l -> !l.equals(currentLevel))
-                .collect(Collectors.toList());
-    }
-
-    public void setTargetLevel(final Integer level) {
-        if (getCurrentTarget().equals(level)) return;
-        road.add(0, level);
-    }
-
-    public void pickup(final Integer pickupLevel, final Integer targetLevel) {
-        if (pickupLevel.equals(currentLevel)) {
-            addToRoad(targetLevel);
+    public void pickup(final Request request) {
+        if (direction.equals(NONE)){
+            if(request.getDirection().equals(UP) && currentLevel>request.getFrom()) direction = DOWN;
+            if (request.getDirection().equals(DOWN) && currentLevel<request.getFrom()) direction = UP;
+            else direction = request.getDirection();
+        }
+        if (currentLevel.equals(request.getFrom())){
+            road.add(request.getTo());
         } else {
-            pickups.add(Pair.of(pickupLevel, targetLevel));
-            addToRoad(pickupLevel);
+            road.add(request.getFrom());
+            road.add(request.getTo());
         }
     }
 
+    public void pickup(final int from, final int to) {
+        pickup(Request.of(from,to));
+    }
 
-    private void addToRoad(final Integer level) {
-        if (getDirection().equals(UP) && level > getCurrentTarget()) setTargetLevel(level);
-        else if (getDirection().equals(DOWN) && level < getCurrentTarget()) setTargetLevel(level);
-        else road.add(level);
+    public void step() {
+
+        move();
+        road.remove(currentLevel);
+        if (road.size() == 0) direction = NONE;
     }
 
     private void move() {
-        val direction = getDirection();
         if (direction.equals(UP)) ++currentLevel;
         else if (direction.equals(DOWN)) --currentLevel;
     }
 
-    public Boolean checkIfIsInRoad(final Integer level) {
-        if (road.contains(level)) return true;
-        else if (getDirection().equals(UP) && currentLevel < level && getTargetLevel() > level) return true;
-        else if (getDirection().equals(DOWN) && currentLevel > level && getTargetLevel() < level) return true;
-        else return false;
-    }
-
-    public Direction getDirection() {
-        return ElevatorUtills.getDirection(getCurrentTarget(), currentLevel);
-    }
-
-    public Integer distanceToGo(final Pair<Integer, Integer> pair) {
-        pickups.add(pair);
-        Integer distance;
-        if ((pair.getFirst()>currentLevel && !getDirection().equals(DOWN)) ||
-                (pair.getFirst()>currentLevel && !getDirection().equals(UP)) ) distance = ditanceUp();
-        else distance = ditanceDown();
-        pickups.remove(pair);
-        return distance;
-
-    }
-
-    private Integer ditanceUp() {
-        val maxToPickup = pickups.stream().mapToInt(Pair::getFirst)
-                .map(Math::abs)
-                .min()
-                .orElse(currentLevel);
-        val maxToTarget = pickups.stream().mapToInt(Pair::getSecond)
-                .map(Math::abs)
-                .max()
-                .orElse(currentLevel);
-        return Math.abs(currentLevel - maxToPickup) + Math.abs(maxToTarget - maxToPickup);
-    }
-
-    private Integer ditanceDown() {
-        val maxToPickup = pickups.stream().mapToInt(Pair::getFirst)
-                .map(Math::abs)
-                .max()
-                .orElse(currentLevel);
-        val maxToTarget = pickups.stream().mapToInt(Pair::getSecond)
-                .map(Math::abs)
-                .min()
-                .orElse(currentLevel);
-        return Math.abs(currentLevel - maxToPickup) + Math.abs(maxToPickup - maxToTarget);
-    }
-
-
-    private Integer distance(final Pair<Integer, Integer> pair) {
-        return Math.abs(pair.getFirst() - pair.getSecond());
+    public Integer priority(final Request request) {
+        if (request.getDirection().equals(direction) && request.getDirection().equals(UP)) {
+            if (currentLevel<= request.getFrom() && request.getTo()<=getTargetFloor()){
+                return ElevatorUtills.MAX_PRIORITY;
+            }
+            else if (currentLevel<= request.getFrom() && !(request.getTo()<=getTargetFloor())) {
+                return ElevatorUtills.MAX_PRIORITY -(request.getTo() - getTargetFloor());
+            }
+            else return ElevatorUtills.MIN_PRIORITY + getTargetFloor() - request.getFrom();
+        }
+        else if (request.getDirection().equals(direction) && request.getDirection().equals(DOWN)) {
+            if (currentLevel>= request.getFrom() && request.getTo()>=getTargetFloor()){
+                return ElevatorUtills.MAX_PRIORITY;
+            }
+            else if (currentLevel>= request.getFrom() && !(request.getTo()>=getTargetFloor())) {
+                return ElevatorUtills.MAX_PRIORITY  - (getTargetFloor() - request.getTo());
+            }
+            else return ElevatorUtills.MIN_PRIORITY - getTargetFloor() + request.getFrom();
+        }
+        if (direction.equals(NONE)) return -Math.abs(request.getFrom() - currentLevel);
+        return ElevatorUtills.MIN_PRIORITY + Math.abs(request.getFrom() - getTargetFloor()) ;
     }
 }
