@@ -14,16 +14,20 @@ public class Elevator {
     private Integer currentLevel;
     private Direction direction = NONE;
     private Set<Integer> road = new HashSet<>();
+    private boolean isGoingToFirstRequest = false;
 
     private Elevator(Integer id, Integer currentLevel) {
         this.id = id;
         this.currentLevel = currentLevel;
     }
 
+    public void update(final Integer currentLevel, final int targetLevel) {
+
+    }
     public Integer getTargetFloor() {
         if (direction.equals(NONE)) return currentLevel;
-        else if(direction.equals(UP)) return road.stream().mapToInt(Integer::intValue).max().orElse(currentLevel);
-        else if(direction.equals(DOWN)) return road.stream().mapToInt(Integer::intValue).min().orElse(currentLevel);
+        else if (direction.equals(UP)) return road.stream().mapToInt(Integer::intValue).max().orElse(currentLevel);
+        else if (direction.equals(DOWN)) return road.stream().mapToInt(Integer::intValue).min().orElse(currentLevel);
         else return currentLevel;
     }
 
@@ -32,12 +36,16 @@ public class Elevator {
     }
 
     public void pickup(final Request request) {
-        if (direction.equals(NONE)){
-            if(request.getDirection().equals(UP) && currentLevel>request.getFrom()) direction = DOWN;
-            if (request.getDirection().equals(DOWN) && currentLevel<request.getFrom()) direction = UP;
-            else direction = request.getDirection();
+        if (direction.equals(NONE)) {
+            if (request.getDirection().equals(UP) && currentLevel > request.getFrom()) {
+                direction = DOWN;
+                isGoingToFirstRequest = true;
+            } else if (request.getDirection().equals(DOWN) && currentLevel < request.getFrom()) {
+                direction = UP;
+                isGoingToFirstRequest = true;
+            } else direction = request.getDirection();
         }
-        if (currentLevel.equals(request.getFrom())){
+        if (currentLevel.equals(request.getFrom())) {
             road.add(request.getTo());
         } else {
             road.add(request.getFrom());
@@ -46,13 +54,17 @@ public class Elevator {
     }
 
     public void pickup(final int from, final int to) {
-        pickup(Request.of(from,to));
+        pickup(Request.of(from, to));
     }
 
     public void step() {
 
         move();
-        road.remove(currentLevel);
+        if (currentLevel.equals(getTargetFloor()) && isGoingToFirstRequest) {
+            isGoingToFirstRequest = false;
+            direction = direction.negative();
+        }
+        if (!isGoingToFirstRequest) road.remove(currentLevel);
         if (road.size() == 0) direction = NONE;
     }
 
@@ -62,25 +74,34 @@ public class Elevator {
     }
 
     public Integer priority(final Request request) {
+        if (isGoingToFirstRequest) return ElevatorUtills.MIN_PRIORITY;
         if (request.getDirection().equals(direction) && request.getDirection().equals(UP)) {
-            if (currentLevel<= request.getFrom() && request.getTo()<=getTargetFloor()){
-                return ElevatorUtills.MAX_PRIORITY;
-            }
-            else if (currentLevel<= request.getFrom() && !(request.getTo()<=getTargetFloor())) {
-                return ElevatorUtills.MAX_PRIORITY -(request.getTo() - getTargetFloor());
-            }
-            else return ElevatorUtills.MIN_PRIORITY + getTargetFloor() - request.getFrom();
+            return priorityWhenGoingUp(request);
+        } else if (request.getDirection().equals(direction) && request.getDirection().equals(DOWN)) {
+            return priorityWhenGoingDown(request);
         }
-        else if (request.getDirection().equals(direction) && request.getDirection().equals(DOWN)) {
-            if (currentLevel>= request.getFrom() && request.getTo()>=getTargetFloor()){
-                return ElevatorUtills.MAX_PRIORITY;
-            }
-            else if (currentLevel>= request.getFrom() && !(request.getTo()>=getTargetFloor())) {
-                return ElevatorUtills.MAX_PRIORITY  - (getTargetFloor() - request.getTo());
-            }
-            else return ElevatorUtills.MIN_PRIORITY - getTargetFloor() + request.getFrom();
-        }
-        if (direction.equals(NONE)) return -Math.abs(request.getFrom() - currentLevel);
-        return ElevatorUtills.MIN_PRIORITY + Math.abs(request.getFrom() - getTargetFloor()) ;
+        if (direction.equals(NONE)) return ElevatorUtills.MAX_PRIORITY - distance(request.getFrom(), currentLevel) - 1;
+        return ElevatorUtills.MIN_PRIORITY + distance(request.getFrom(), getTargetFloor());
+    }
+
+
+    private Integer priorityWhenGoingUp(final Request request) {
+        if (currentLevel <= request.getFrom() && request.getTo() <= getTargetFloor()) {
+            return ElevatorUtills.MAX_PRIORITY - distance(currentLevel, request.getFrom());
+        } else if (currentLevel <= request.getFrom() && !(request.getTo() <= getTargetFloor())) {
+            return ElevatorUtills.MAX_PRIORITY - distance(request.getTo(), getTargetFloor());
+        } else return ElevatorUtills.MIN_PRIORITY + distance(getTargetFloor(), request.getFrom());
+    }
+
+    private Integer priorityWhenGoingDown(final Request request) {
+        if (currentLevel >= request.getFrom() && request.getTo() >= getTargetFloor()) {
+            return ElevatorUtills.MAX_PRIORITY - distance(currentLevel, request.getFrom());
+        } else if (currentLevel >= request.getFrom() && !(request.getTo() >= getTargetFloor())) {
+            return ElevatorUtills.MAX_PRIORITY - distance(getTargetFloor(), request.getTo());
+        } else return ElevatorUtills.MIN_PRIORITY + distance(getTargetFloor(), request.getFrom());
+    }
+
+    private Integer distance(final int from, final int to) {
+        return Math.abs(to - from);
     }
 }

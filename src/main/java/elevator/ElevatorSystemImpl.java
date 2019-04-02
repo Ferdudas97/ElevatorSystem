@@ -27,7 +27,7 @@ public class ElevatorSystemImpl implements ElevatorSystem {
     }
 
     public void update(Integer elevatorId, Integer currentLevel, Integer targetLevel) {
-//        elevatorList.get(elevatorId).setTargetLevel(targetLevel);
+        elevatorList.get(elevatorId).update(currentLevel,targetLevel);
     }
 
     public void pickUp(Integer currentLevel, Integer targetLevel) {

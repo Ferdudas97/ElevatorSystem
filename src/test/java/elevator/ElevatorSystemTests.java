@@ -25,7 +25,7 @@ class ElevatorSystemTests {
 
     @Test
     void stepTests() {
-        val elevators = Stream.iterate(1, i -> i+1)
+        val elevators = Stream.iterate(1, i -> i + 1)
                 .limit(5)
                 .map(i -> Elevator.of(i, 0))
                 .collect(Collectors.toList());
@@ -33,15 +33,15 @@ class ElevatorSystemTests {
 
         system.pickUp(2, 4);
         system.pickUp(3, 8);
-        check(Set.of(2,3,4,8), 5);
+        check(Set.of(2, 3, 4, 8), 5);
         doSystemStep(3);
-        check(Set.of(4,8), 5);
+        check(Set.of(4, 8), 5);
         doSystemStep(1);
         check(Set.of(8), 5);
         system.pickUp(1, 6);
         system.pickUp(9, 10);
-        check(Set.of(1,6), 4);
-        check(Set.of(8,9,10), 5);
+        check(Set.of(1, 6), 4);
+        check(Set.of(8, 9, 10), 5);
         doSystemStep(5);
         check(Set.of(6), 4);
         check(Set.of(10), 5);
@@ -52,8 +52,13 @@ class ElevatorSystemTests {
         system.pickUp(3, 8);
         system.pickUp(9, 5);
         system.pickUp(4, 6);
-        check(Set.of(5,9), 5);
-        check(Set.of(3,4,5,6,8), 3);
+        check(Set.of(5, 9), 5);
+        check(Set.of(3, 4, 6, 8), 3);
+        check(Set.of(3, 5), 4);
+        doSystemStep(3);
+        check(Set.of(5), 5);
+        check(Set.of(4, 6, 8), 3);
+        check(Set.of(5), 4);
     }
 
     @Test
@@ -80,7 +85,7 @@ class ElevatorSystemTests {
         system.pickUp(7, 3);
         check(Set.of(9), 1);
         check(Set.of(1, 3, 4), 2);
-        check(Set.of(8,6,7,3),0);
+        check(Set.of(8, 6, 7, 3), 0);
 
     }
 

@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -18,12 +19,12 @@ public class ElevatorTests {
     void pickUpTest() {
         val elevator = Elevator.of(1, 0);
         elevator.pickup(2, 5);
-        assertEquals(2, elevator.getTargetFloor());
-        assertEquals(List.of(2), elevator.getRoad());
+        assertEquals(5, elevator.getTargetFloor());
+        assertEquals(Set.of(2,5), elevator.getRoad());
         elevator.pickup(3, 4);
-        assertEquals(List.of(3,2), elevator.getRoad());
+        assertEquals(Set.of(5,4,3,2), elevator.getRoad());
         elevator.pickup(6, 8);
-        assertEquals(List.of(6,3,2), elevator.getRoad());
+        assertEquals(Set.of(8,5,6,4,3,2), elevator.getRoad());
     }
 
     @Test
@@ -32,21 +33,21 @@ public class ElevatorTests {
         elevator.pickup(2, 5);
         doElevatorSteps(elevator, 2);
         assertEquals(2, elevator.getCurrentLevel());
-        assertEquals(List.of(5), elevator.getRoad());
+        assertEquals(Set.of(5), elevator.getRoad());
 
         doElevatorSteps(elevator, 3);
-        assertEquals(List.of(), elevator.getRoad());
+        assertEquals(Set.of(), elevator.getRoad());
         assertEquals(5, elevator.getCurrentLevel());
 
         doElevatorSteps(elevator, 4);
-        assertEquals(List.of(), elevator.getRoad());
+        assertEquals(Set.of(), elevator.getRoad());
         assertEquals(5, elevator.getCurrentLevel());
         elevator.pickup(4, 2);
-        assertEquals(List.of(4), elevator.getRoad());
+        assertEquals(Set.of(4,2), elevator.getRoad());
         assertEquals(5, elevator.getCurrentLevel());
         doElevatorSteps(elevator, 1);
         assertEquals(4, elevator.getCurrentLevel());
-        assertEquals(List.of(2), elevator.getRoad());
+        assertEquals(Set.of(2), elevator.getRoad());
 
 
     }
