@@ -1,34 +1,46 @@
 package elevator;
 
+import elevator.observable.Observable;
+import elevator.requests.Request;
 import lombok.Getter;
-import lombok.val;
 
-import java.util.*;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static elevator.Direction.*;
+import static elevator.ElevatorUtills.MAX_PRIORITY;
 
 @Getter
-public class Elevator {
+public class Elevator extends Observable {
     private final Integer id;
     private Integer currentLevel;
     private Direction direction = NONE;
-    private Set<Integer> road = new HashSet<>();
-    private boolean isGoingToFirstRequest = false;
+    private Set<Request> requests = new HashSet<>();
+    private boolean isGointInOppositeSite = false;
+    private Integer targetFloor;
 
     private Elevator(Integer id, Integer currentLevel) {
         this.id = id;
         this.currentLevel = currentLevel;
+        this.targetFloor = currentLevel;
     }
 
-    public void update(final Integer currentLevel, final int targetLevel) {
-
+    public Set<Integer> getRoad() {
+        return requests.stream()
+                .map(Request::getFrom)
+                .collect(Collectors.toSet());
     }
+
+    public void update(final int currentFloor, final int targetFloor) {
+        clearData();
+        this.currentLevel = currentFloor;
+        pickup(Request.of(targetFloor, Direction.of(targetFloor - currentFloor)));
+    }
+
     public Integer getTargetFloor() {
         if (direction.equals(NONE)) return currentLevel;
-        else if (direction.equals(UP)) return road.stream().mapToInt(Integer::intValue).max().orElse(currentLevel);
-        else if (direction.equals(DOWN)) return road.stream().mapToInt(Integer::intValue).min().orElse(currentLevel);
-        else return currentLevel;
+        else return targetFloor;
     }
 
     public static Elevator of(final Integer id, final Integer currentLevel) {
@@ -36,72 +48,112 @@ public class Elevator {
     }
 
     public void pickup(final Request request) {
-        if (direction.equals(NONE)) {
-            if (request.getDirection().equals(UP) && currentLevel > request.getFrom()) {
-                direction = DOWN;
-                isGoingToFirstRequest = true;
-            } else if (request.getDirection().equals(DOWN) && currentLevel < request.getFrom()) {
-                direction = UP;
-                isGoingToFirstRequest = true;
-            } else direction = request.getDirection();
-        }
-        if (currentLevel.equals(request.getFrom())) {
-            road.add(request.getTo());
-        } else {
-            road.add(request.getFrom());
-            road.add(request.getTo());
-        }
+        if (!request.getDirection().equals(direction) && !direction.isNone()) return;
+        if (request.getFrom().equals(currentLevel)) return;
+        setTargetFloor(request);
+        setDirection(request);
+        if (!request.getFrom().equals(currentLevel)) requests.add(request);
+
     }
 
-    public void pickup(final int from, final int to) {
-        pickup(Request.of(from, to));
+    private void setDirection(final Request request) {
+        if (direction.isNone()) {
+            if (request.getDirection().isUp() && currentLevel > request.getFrom()) {
+                direction = DOWN;
+                isGointInOppositeSite = true;
+            } else if (request.getDirection().isDown() && currentLevel < request.getFrom()) {
+                direction = UP;
+                isGointInOppositeSite = true;
+            } else direction = request.getDirection();
+        }
+
+    }
+
+    private void setTargetFloor(final Request request) {
+        if (direction.isUp()) {
+            if (isGointInOppositeSite) {
+                if (request.getFrom() < targetFloor) targetFloor = request.getFrom();
+            } else if (request.getFrom() > targetFloor) targetFloor = request.getFrom();
+        } else if (direction.isDown()) {
+            if (isGointInOppositeSite) {
+                if (request.getFrom() > targetFloor) targetFloor = request.getFrom();
+            } else if (request.getFrom() < targetFloor) targetFloor = request.getFrom();
+        } else targetFloor = request.getFrom();
+    }
+
+    public void pickup(final int from, final int direction) {
+        pickup(Request.of(from, Direction.of(direction)));
     }
 
     public void step() {
 
         move();
-        if (currentLevel.equals(getTargetFloor()) && isGoingToFirstRequest) {
-            isGoingToFirstRequest = false;
-            direction = direction.negative();
+        removeCompletedRequest();
+        if (requests.size() == 0) {
+            onCompleteAllRequests();
         }
-        if (!isGoingToFirstRequest) road.remove(currentLevel);
-        if (road.size() == 0) direction = NONE;
-    }
-
-    private void move() {
-        if (direction.equals(UP)) ++currentLevel;
-        else if (direction.equals(DOWN)) --currentLevel;
     }
 
     public Integer priority(final Request request) {
-        if (isGoingToFirstRequest) return ElevatorUtills.MIN_PRIORITY;
-        if (request.getDirection().equals(direction) && request.getDirection().equals(UP)) {
-            return priorityWhenGoingUp(request);
-        } else if (request.getDirection().equals(direction) && request.getDirection().equals(DOWN)) {
-            return priorityWhenGoingDown(request);
+        if (!direction.isNone() && !isGointInOppositeSite) {
+            if (isBeetwenCurrentFloorAndTargetFloor(request)) return MAX_PRIORITY;
+            else if (direction.equals(request.getDirection()))
+                return MAX_PRIORITY - distance(request.getFrom(), targetFloor);
         }
-        if (direction.equals(NONE)) return ElevatorUtills.MAX_PRIORITY - distance(request.getFrom(), currentLevel) - 1;
-        return ElevatorUtills.MIN_PRIORITY + distance(request.getFrom(), getTargetFloor());
+        if (isGointInOppositeSite) return -distance(request.getFrom(), targetFloor);
+        return MAX_PRIORITY - distance(request.getFrom(), currentLevel);
+    }
+
+    private void removeCompletedRequest() {
+        if (isGointInOppositeSite) requests.remove(Request.of(currentLevel, direction.negative()));
+        else requests.remove(Request.of(currentLevel, direction));
+
+    }
+
+    private void onCompleteAllRequests() {
+        direction = NONE;
+        targetFloor = currentLevel;
+        isGointInOppositeSite = false;
+        notifyObserver();
     }
 
 
-    private Integer priorityWhenGoingUp(final Request request) {
-        if (currentLevel <= request.getFrom() && request.getTo() <= getTargetFloor()) {
-            return ElevatorUtills.MAX_PRIORITY - distance(currentLevel, request.getFrom());
-        } else if (currentLevel <= request.getFrom() && !(request.getTo() <= getTargetFloor())) {
-            return ElevatorUtills.MAX_PRIORITY - distance(request.getTo(), getTargetFloor());
-        } else return ElevatorUtills.MIN_PRIORITY + distance(getTargetFloor(), request.getFrom());
+    private void move() {
+        if (direction.isUp()) ++currentLevel;
+        else if (direction.isDown()) --currentLevel;
     }
 
-    private Integer priorityWhenGoingDown(final Request request) {
-        if (currentLevel >= request.getFrom() && request.getTo() >= getTargetFloor()) {
-            return ElevatorUtills.MAX_PRIORITY - distance(currentLevel, request.getFrom());
-        } else if (currentLevel >= request.getFrom() && !(request.getTo() >= getTargetFloor())) {
-            return ElevatorUtills.MAX_PRIORITY - distance(getTargetFloor(), request.getTo());
-        } else return ElevatorUtills.MIN_PRIORITY + distance(getTargetFloor(), request.getFrom());
+
+    private Integer distance(final int x, final int y) {
+        return x - y > 0 ? x - y : y - x;
     }
 
-    private Integer distance(final int from, final int to) {
-        return Math.abs(to - from);
+    public boolean canHandleThisRequest(final Request request) {
+        if (isGointInOppositeSite) return canHandleItWhenGoingInOppositeSide(request);
+        if (direction.equals(request.getDirection())) return true;
+        if (direction.isNone()) return true;
+        return false;
+    }
+
+    private boolean canHandleItWhenGoingInOppositeSide(final Request request) {
+        if (requests.contains(request)) return true;
+        else
+            return isBeetwenCurrentFloorAndTargetFloor(Request.of(request.getFrom(),
+                    request.getDirection().negative()));
+    }
+
+    private boolean isBeetwenCurrentFloorAndTargetFloor(final Request request) {
+        if (request.getDirection().isUp() && currentLevel <= request.getFrom() && request.getFrom() <= targetFloor)
+            return true;
+        else if (request.getDirection().isDown() && currentLevel >= request.getFrom() && request.getFrom() >= targetFloor)
+            return true;
+        else return false;
+    }
+
+    private void clearData() {
+        requests.clear();
+        direction = NONE;
+        targetFloor = 0;
+        currentLevel = 0;
     }
 }

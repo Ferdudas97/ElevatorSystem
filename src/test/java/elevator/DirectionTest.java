@@ -8,9 +8,10 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class DirectionTest {
     @Test
-    void directionTest() {
+    public void negativeTest() {
         assertEquals(NONE, NONE.negative());
         assertEquals(DOWN, UP.negative());
         assertEquals(UP, DOWN.negative());
     }
+
 }

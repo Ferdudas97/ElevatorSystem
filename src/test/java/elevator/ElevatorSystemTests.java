@@ -1,9 +1,6 @@
 package elevator;
 
 import lombok.val;
-import lombok.var;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.util.*;
@@ -12,57 +9,60 @@ import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class ElevatorSystemTests {
+
+public class ElevatorSystemTests {
     private ElevatorSystemImpl system;
 
-    ElevatorSystemTests() {
-        val elevators = Stream.iterate(0, i -> i++)
-                .limit(5)
-                .map(i -> Elevator.of(i, 0))
-                .collect(Collectors.toList());
-        this.system = ElevatorSystemImpl.of(elevators);
-    }
 
     @Test
-    void stepTests() {
+    public void simulationTest1() {
         val elevators = Stream.iterate(1, i -> i + 1)
                 .limit(5)
                 .map(i -> Elevator.of(i, 0))
                 .collect(Collectors.toList());
         this.system = ElevatorSystemImpl.of(elevators);
 
-        system.pickUp(2, 4);
-        system.pickUp(3, 8);
-        check(Set.of(2, 3, 4, 8), 5);
+        system.pickUp(3, 1);
+        system.pickUp(2, 1);
+        assertRoadEquals(Set.of(2, 3), 5);
         doSystemStep(3);
-        check(Set.of(4, 8), 5);
+        assertRoadEquals(Set.of(), 5);
         doSystemStep(1);
-        check(Set.of(8), 5);
-        system.pickUp(1, 6);
-        system.pickUp(9, 10);
-        check(Set.of(1, 6), 4);
-        check(Set.of(8, 9, 10), 5);
-        doSystemStep(5);
-        check(Set.of(6), 4);
-        check(Set.of(10), 5);
-        doSystemStep(1);
-        check(Set.of(), 5);
-        check(Set.of(), 4);
-        system.pickUp(3, 5);
-        system.pickUp(3, 8);
-        system.pickUp(9, 5);
-        system.pickUp(4, 6);
-        check(Set.of(5, 9), 5);
-        check(Set.of(3, 4, 6, 8), 3);
-        check(Set.of(3, 5), 4);
+        system.pickUp(1, 1);
+        system.pickUp(9, -1);
+        assertRoadEquals(Set.of(1), 4);
+        assertRoadEquals(Set.of(9), 5);
+        doSystemStep(6);
+        system.pickUp(4, 1);
+        system.pickUp(8, 1);
+        system.pickUp(8, -1);
+        system.pickUp(3, -1);
+        assertRoadEquals(Set.of(4), 4);
+        assertRoadEquals(Set.of(8), 5);
+        assertRoadEquals(Set.of(8), 3);
+        assertRoadEquals(Set.of(3), 2);
+
         doSystemStep(3);
-        check(Set.of(5), 5);
-        check(Set.of(4, 6, 8), 3);
-        check(Set.of(5), 4);
+        assertRoadEquals(Set.of(), 5);
+        assertRoadEquals(Set.of(), 4);
+        assertRoadEquals(Set.of(8), 3);
+        assertRoadEquals(Set.of(), 2);
+        system.pickUp(6, 1);
+        system.pickUp(8, -1);
+        system.pickUp(4, -1);
+        system.pickUp(3, 1);
+        assertRoadEquals(Set.of(8), 3);
+        assertRoadEquals(Set.of(6), 5);
+        assertRoadEquals(Set.of(8), 4);
+        assertRoadEquals(Set.of(3), 1);
+        assertRoadEquals(Set.of(4), 2);
+        doSystemStep(3);
+        assertRoadEquals(Set.of(), 5);
+        assertRoadEquals(Set.of(8), 3);
     }
 
     @Test
-    void stepTest2() {
+    public void simulationTest2() {
         val elevators = List.of(Elevator.of(0, 10),
                 Elevator.of(1, 4),
                 Elevator.of(2, 0),
@@ -70,32 +70,66 @@ class ElevatorSystemTests {
                 Elevator.of(4, 7));
         this.system = ElevatorSystemImpl.of(elevators);
 
-        system.pickUp(8, 11);
-        system.pickUp(9, 10);
-        system.pickUp(10, 9);
-        check(Set.of(8, 9, 10, 11), 4);
-        check(Set.of(9), 0);
+        system.pickUp(8, 1);
+        system.pickUp(9, -1);
+        system.pickUp(4, 1);
+        assertRoadEquals(Set.of(8), 4);
+        assertRoadEquals(Set.of(9), 0);
+        assertRoadEquals(Set.of(), 1);
         doSystemStep(1);
-        check(Set.of(9, 10, 11), 4);
-        check(Set.of(), 0);
-        system.pickUp(4, 9);
-        system.pickUp(3, 4);
-        system.pickUp(1, 3);
-        system.pickUp(8, 6);
-        system.pickUp(7, 3);
-        check(Set.of(9), 1);
-        check(Set.of(1, 3, 4), 2);
-        check(Set.of(8, 6, 7, 3), 0);
+        assertRoadEquals(Set.of(), 4);
+        assertRoadEquals(Set.of(), 0);
+        system.pickUp(4, -1);
+        system.pickUp(3, -1);
+        system.pickUp(1, -1);
+        system.pickUp(10, -1);
+        system.pickUp(7, 1);
+        assertRoadEquals(Set.of(3), 1);
+        assertRoadEquals(Set.of(1), 2);
+        assertRoadEquals(Set.of(10), 0);
 
     }
 
-    private void check(final Set<Integer> expectedRoad,
-                       final int id) {
-        var actualRoad = system.getElevatorList().stream()
+    @Test
+    public void simulationTest3() {
+        val elevators = List.of(Elevator.of(0, 5));
+        this.system = ElevatorSystemImpl.of(elevators);
+        system.pickUp(6, 1);
+        system.pickUp(8, 1);
+        system.pickUp(3, -1);
+        system.pickUp(4, -1);
+        system.pickUp(2, -1);
+        assertRoadEquals(Set.of(6, 8), 0);
+        assertEquals(3, system.getUnassignedRequests().size());
+        doSystemStep(3);
+        assertRoadEquals(Set.of(4, 3, 2), 0);
+
+    }
+
+    @Test
+    public void simulationTest4() {
+        val elevators = List.of(Elevator.of(0, 0));
+        this.system = ElevatorSystemImpl.of(elevators);
+        system.pickUp(5, 1);
+        system.pickUp(9, 1);
+        system.pickUp(8, -1);
+        assertRoadEquals(Set.of(5, 9), 0);
+        assertEquals(1, system.getUnassignedRequests().size());
+        doSystemStep(9);
+        assertRoadEquals(Set.of(8), 0);
+        doSystemStep(1);
+        assertRoadEquals(Set.of(), 0);
+    }
+
+    private void assertRoadEquals(final Set<Integer> expectedRoad,
+                                  final int id) {
+        val actualRoad = new HashSet<Integer>(system.getElevatorList()
+                .stream()
                 .filter(e -> e.getId().equals(id))
                 .findFirst()
                 .map(Elevator::getRoad)
-                .orElseThrow(RuntimeException::new);
+                .get());
+
         assertEquals(expectedRoad, actualRoad);
 
     }

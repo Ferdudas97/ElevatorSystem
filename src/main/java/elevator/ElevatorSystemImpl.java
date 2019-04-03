@@ -1,7 +1,10 @@
 package elevator;
 
+import elevator.observable.Observable;
+import elevator.observable.Observer;
+import elevator.requests.Request;
+import elevator.requests.RequestQueue;
 import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.val;
 
@@ -10,33 +13,43 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 @Getter(value = AccessLevel.PACKAGE)
-@AllArgsConstructor(staticName = "of")
-public class ElevatorSystemImpl implements ElevatorSystem {
+public class ElevatorSystemImpl implements ElevatorSystem, Observer {
 
     private final List<Elevator> elevatorList;
+    private final RequestQueue unassignedRequests = new RequestQueue();
+
+    private ElevatorSystemImpl(List<Elevator> elevatorList) {
+        this.elevatorList = elevatorList;
+        elevatorList.forEach(e -> e.subscribeObservable(this));
+    }
+
+    public static ElevatorSystemImpl of(List<Elevator> elevatorList) {
+        return new ElevatorSystemImpl(elevatorList);
+    }
 
     public Set<ElevatorStatus> status() {
-//        return elevatorList.stream()
-////                .map(e -> ElevatorStatus.of(e.getId(), e.getCurrentLevel(), e.getTargetLevel()))
-//                .collect(Collectors.toSet());
-        return null;
+        return elevatorList.stream()
+                .map(e -> ElevatorStatus.of(e.getId(), e.getCurrentLevel(), e.getTargetFloor()))
+                .collect(Collectors.toSet());
     }
 
     public void step() {
         elevatorList.forEach(Elevator::step);
     }
 
-    public void update(Integer elevatorId, Integer currentLevel, Integer targetLevel) {
-        elevatorList.get(elevatorId).update(currentLevel,targetLevel);
+    public void update(Integer elevatorId, Integer currentFloor, Integer targetFloor) {
+        elevatorList.get(elevatorId).update(currentFloor, targetFloor);
     }
 
-    public void pickUp(Integer currentLevel, Integer targetLevel) {
-        val request = Request.of(currentLevel, targetLevel);
+    public void pickUp(Integer currentFloor, Integer direction) {
+        val request = Request.of(currentFloor, Direction.of(direction));
         val elevator = elevatorList.stream()
-                .reduce((e1, e2) -> getElevatorWithBiggerPriority(e1,e2,request));
+                .filter(e -> e.canHandleThisRequest(request))
+                .reduce((e1, e2) -> getElevatorWithBiggerPriority(e1, e2, request));
 
-        elevator.ifPresent(elevator1 -> elevator1.pickup(request));
+        elevator.ifPresentOrElse(elevator1 -> elevator1.pickup(request), () -> unassignedRequests.add(request));
     }
+
 
     private Elevator getElevatorWithBiggerPriority(final Elevator elevator1,
                                                    final Elevator elevator2,
@@ -44,8 +57,16 @@ public class ElevatorSystemImpl implements ElevatorSystem {
         return elevator1.priority(request) > elevator2.priority(request) ? elevator1 : elevator2;
     }
 
+    @Override
+    public void onNotify(Observable observable) {
+        if (observable instanceof Elevator) {
+            val elevator = (Elevator) observable;
+            var request = unassignedRequests.get();
+            while (request.isPresent() && elevator.canHandleThisRequest(request.get())) {
+                unassignedRequests.pop().ifPresent(elevator::pickup);
+                request = unassignedRequests.get();
+            }
 
-    private double distance(final double x1, final double x2, final double y1, final double y2) {
-        return x1 - y1 + x2 - y2;
+        }
     }
 }
