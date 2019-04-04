@@ -30,7 +30,7 @@ add request to RequestQueue and omit rest steps
 5. Move in direction of target floor, removing completed request by way
 6. If all request are completed, stop and if Elevator system have any unassigned request pick it.
 
-## Future improvmnents
+## Future improvments
 - add max possible number of passengers
 - consider number of floors on elevator road in priority computing
 - improve pickuping request with the same floor as elevator`s current floor;
