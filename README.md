@@ -10,6 +10,12 @@
 3. If you want run application 
 ``  mvn install exec:java``
 
+## Elevator System interface
+- pickup(Integer currentFloor, Integer direction) - takes floor where request was created, and direction of request -1 means down, 1 means up, it represents functionality of buttons on elevator's entrance frame
+- update(Integer id, Integer currentFloor, Integer direction) - updates state of specified elevator
+- status() - returns state of each elevator
+- step() - simulation step
+
 ## About algorithm
 I decided to implement my own solution instead of FCFS. That solution is mix of my idea and FCFS, it uses  RequestQueue
 but only for request which can't be assigned to any elevator. Request are assigned to elevators by priority, 
