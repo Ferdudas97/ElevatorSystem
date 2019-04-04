@@ -29,7 +29,7 @@ public class ElevatorSystemImpl implements ElevatorSystem, Observer {
 
     public Set<ElevatorStatus> status() {
         return elevatorList.stream()
-                .map(e -> ElevatorStatus.of(e.getId(), e.getCurrentLevel(), e.getTargetFloor()))
+                .map(e -> ElevatorStatus.of(e.getId(), e.getCurrentFloor(), e.getTargetFloor(), e.getRoad()))
                 .collect(Collectors.toSet());
     }
 

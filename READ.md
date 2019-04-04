@@ -1,2 +1,0 @@
-**Uruchomienie programu**
-m

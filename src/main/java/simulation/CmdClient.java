@@ -17,10 +17,11 @@ public class CmdClient {
     private static final Scanner in = new Scanner(System.in);
     private boolean exit = false;
     private ElevatorSystem system;
+    private int numberOfElevators;
 
     public void start() {
         out.println("Type number of elevators (min=1 max=16)");
-        val numberOfElevators = inputInteger(16, 1);
+        numberOfElevators = inputInteger(16, 1);
         system = ElevatorSystemImpl.of(initElevators(numberOfElevators));
 
         while (!exit) {
@@ -53,12 +54,12 @@ public class CmdClient {
                 break;
             case 2:
                 out.println("Type elevator id");
-                val id = in.nextInt();
+                val id = inputInteger(numberOfElevators, 1) - 1;
                 out.println("Type current floor");
                 val currentFloor = in.nextInt();
                 out.println("Type target floor");
                 targetFloor = in.nextInt();
-                system.update(id,currentFloor, targetFloor);
+                system.update(id, currentFloor, targetFloor);
                 break;
             case 3:
                 system.status().forEach(out::println);
@@ -67,7 +68,7 @@ public class CmdClient {
                 system.step();
                 break;
             case 5:
-                exit=true;
+                exit = true;
                 break;
 
         }
