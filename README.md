@@ -3,7 +3,7 @@
 ## Run project instructions
 
 1. Clone project from github
- ``  git clone https://github.com/Ferdudas97/ElevatorSystem.git"
+ ``  git clone https://github.com/Ferdudas97/ElevatorSystem.git ``
 2. Go into project folder
 3. If you want run tests 
  `` mvn test``
